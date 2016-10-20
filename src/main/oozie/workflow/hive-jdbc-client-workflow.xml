@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+	license agreements. See the NOTICE file distributed with this work for additional 
+	information regarding copyright ownership. The ASF licenses this file to 
+	you under the Apache License, Version 2.0 (the "License"); you may not use 
+	this file except in compliance with the License. You may obtain a copy of 
+	the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+	by applicable law or agreed to in writing, software distributed under the 
+	License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+	OF ANY KIND, either express or implied. See the License for the specific 
+	language governing permissions and limitations under the License. -->
+
+<workflow-app xmlns="uri:oozie:workflow:0.2" name="hive-jdbc-client-workflow">
+
+<start to="hiveJDBC-extraction"/>
+
+<action name="hiveJDBC-extraction">
+		<java>
+			<job-tracker>${jobTracker}</job-tracker>
+			<name-node>${nameNode}</name-node>
+			<configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+			<main-class>com.bigdata.bdp.hiveJDBC.HiveJdbcClient
+			</main-class>
+			<java-opts></java-opts>
+			<arg>${hiveServer2Jdbc}</arg>
+			<arg>${userName}</arg>
+			<arg>${password}</arg>
+			<arg>${queryForQueue}</arg>
+			<arg>${queryForExtract}</arg>
+			<arg>${beelineExternalPath}</arg>
+			<arg>${beelineDBName}</arg>
+			<capture-output />
+		</java>
+		<ok to="extraction_success" />
+		<error to="extraction_failure" />
+	</action>
+	
+	<action name="extraction_success">
+	    <email xmlns="uri:oozie:email-action:0.1">
+	       <to>${emailIds}</to>
+	       <subject>oozie job ${wf:id()} for HiveJDBC Extraction is successful</subject>
+	       <body>
+	           <![CDATA[Hello,
+	           
+HiveJDBC Extraction is successful.
+
+Please do not reply to this email as this is a system generated email.
+
+Regards,
+BDP Test 
+				]]>
+			</body>
+	    </email>
+	    <ok to="end" />
+	    <error to="end" />  
+	</action>
+
+    <action name="extraction_failure">
+        <email xmlns="uri:oozie:email-action:0.1">
+			<to>${emailIds}</to>
+			<subject>${wf:id()} failed</subject>
+			<body> 
+				<![CDATA[Extraction failed for ${wf:lastErrorNode()}, below are the details:
+	Oozie Workflow ID [${wf:id()}].
+	Workflow Path [${wf:appPath()}]
+	Error Node [${wf:lastErrorNode()}]
+	Error Code [${wf:errorCode(wf:lastErrorNode())}]
+	Error Message [${wf:errorMessage(wf:lastErrorNode())}]
+	           ]]>
+			</body>
+		</email>
+		<ok to="end" />
+		<error to="end" />
+    </action>
+    <end name="end" />    
+    
+</workflow-app>

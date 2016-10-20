@@ -1,0 +1,1 @@
+set mapred.job.queue.name=yodlee

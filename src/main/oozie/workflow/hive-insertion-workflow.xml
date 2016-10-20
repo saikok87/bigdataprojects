@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+	license agreements. See the NOTICE file distributed with this work for additional 
+	information regarding copyright ownership. The ASF licenses this file to 
+	you under the Apache License, Version 2.0 (the "License"); you may not use 
+	this file except in compliance with the License. You may obtain a copy of 
+	the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+	by applicable law or agreed to in writing, software distributed under the 
+	License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+	OF ANY KIND, either express or implied. See the License for the specific 
+	language governing permissions and limitations under the License. -->
+<workflow-app xmlns="uri:oozie:workflow:0.2"
+	name="hive-insertion-workflow">
+	<start to="copy-hive-site" /> 
+	
+	<action name="copy-hive-site">
+		<shell xmlns="uri:oozie:shell-action:0.1">
+			<job-tracker>${jobTracker}</job-tracker>
+			<name-node>${nameNode}</name-node>
+			<configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+			<exec>${hive_xml_copy_script_path}</exec>
+			<argument>${hive_site_source_path}</argument>
+			<argument>${hive_site_destination_path}/</argument>
+			<file>${hive_xml_copy_script_path}#${hive_xml_copy_script_name}</file>
+		</shell>
+		<ok to="hive-insertion" />
+		<error to="insertion-failure" />
+	</action>
+	
+	<action name="hive-insertion">
+		<hive xmlns="uri:oozie:hive-action:0.2">
+			<job-tracker>${jobTracker}</job-tracker>
+			<name-node>${nameNode}</name-node>
+			<job-xml>${hiveSite}</job-xml>
+			<configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+			<script>scripts/hive/companyData.hql</script>
+			<param>warehouseDir=${warehouseDir}</param>
+			<param>testcustomer_DB=${testcustomer_DB}</param>
+			<param>testcustomer_table=${testcustomer_table}</param>
+			<param>inputPath=${inputPath}</param>
+			<param>companyDBName=${companyDBName}</param>
+			<param>companyTableName=${companyTableName}</param>
+			<param>hiveExternalPathCmpny=${hiveExternalPathCmpny}</param>
+		</hive>
+	<ok to="insertion_success" />
+	<error to="insertion-failure" />
+	</action>
+	
+	<action name="insertion_success">
+	    <email xmlns="uri:oozie:email-action:0.1">
+	       <to>${emailIds}</to>
+	       <subject>oozie job ${wf:id()} for Hive table Insertion is successful</subject>
+	       <body>
+	           <![CDATA[Hello,
+	           
+Hive table Insertion is successful.
+
+Please do not reply to this email as this is a system generated email.
+
+Regards,
+BDP Test 
+				]]>
+			</body>
+	    </email>
+	    <ok to="end" />
+	    <error to="end" />  
+	</action>
+
+    <action name="insertion-failure">
+        <email xmlns="uri:oozie:email-action:0.1">
+			<to>${emailIds}</to>
+			<subject>${wf:id()} failed</subject>
+			<body> 
+				<![CDATA[Extraction failed for ${wf:lastErrorNode()}, below are the details:
+	Oozie Workflow ID [${wf:id()}].
+	Workflow Path [${wf:appPath()}]
+	Error Node [${wf:lastErrorNode()}]
+	Error Code [${wf:errorCode(wf:lastErrorNode())}]
+	Error Message [${wf:errorMessage(wf:lastErrorNode())}]
+	           ]]>
+			</body>
+		</email>
+		<ok to="end" />
+		<error to="end" />
+    </action>
+    <end name="end" />    
+</workflow-app>	
+	

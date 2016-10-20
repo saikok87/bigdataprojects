@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+	license agreements. See the NOTICE file distributed with this work for additional 
+	information regarding copyright ownership. The ASF licenses this file to 
+	you under the Apache License, Version 2.0 (the "License"); you may not use 
+	this file except in compliance with the License. You may obtain a copy of 
+	the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+	by applicable law or agreed to in writing, software distributed under the 
+	License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+	OF ANY KIND, either express or implied. See the License for the specific 
+	language governing permissions and limitations under the License. -->
+
+<workflow-app xmlns="uri:oozie:workflow:0.2" name="hive-shell-insertion-workflow">
+
+	<start to="hive-insertion-action"/>
+
+<action name="hive-insertion-action">
+	<shell xmlns="uri:oozie:shell-action:0.1">
+			<job-tracker>${jobTracker}</job-tracker>
+			<name-node>${nameNode}</name-node>
+			<configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+			<exec>${insertionPath}</exec>
+			<argument>${homeDir}/</argument>
+			<argument>${propertyFile}</argument>
+			<argument>${testemp_DB}</argument>
+			<argument>${queueName}</argument>
+			<argument>${testemp_table}</argument>
+			<argument>${testempprof_table}</argument>
+			<argument>${testempdetails_table}</argument>
+			<argument>${hiveinput_Path}</argument>
+			<argument>${hiveinput_Path2}</argument>
+			<!-- <argument>${wf:actionData('update-hive-action')['curr_date']}</argument> -->
+			<file>${insertionPath}#${insertionPath}</file>
+			<capture-output/>
+	</shell>
+		<ok to="insertion_success" />
+		<error to="insertion_failure" />
+</action>
+<action name="insertion_success">
+	    <email xmlns="uri:oozie:email-action:0.1">
+	       <to>${emailIds}</to>
+	       <subject>oozie job ${wf:id()} for Hive insertion is successful</subject>
+	       <body>
+	           <![CDATA[Hello,
+	           
+Hive insertion is successful.
+
+Please do not reply to this email as this is a system generated email.
+
+Regards,
+BDP Test 
+				]]>
+			</body>
+	    </email>
+	    <ok to="end" />
+	    <error to="end" />  
+	</action>
+
+<action name="insertion_failure">
+        <email xmlns="uri:oozie:email-action:0.1">
+			<to>${emailIds}</to>
+			<subject>${wf:id()} failed</subject>
+			<body> 
+				<![CDATA[Insertion failed for ${wf:lastErrorNode()}, below are the details:
+	Oozie Workflow ID [${wf:id()}].
+	Workflow Path [${wf:appPath()}]
+	Error Node [${wf:lastErrorNode()}]
+	Error Code [${wf:errorCode(wf:lastErrorNode())}]
+	Error Message [${wf:errorMessage(wf:lastErrorNode())}]
+	           ]]>
+			</body>
+		</email>
+		<ok to="end" />
+		<error to="end" />
+</action>
+    <end name="end" />  
+</workflow-app>
